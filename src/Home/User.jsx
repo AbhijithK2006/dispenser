@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Avatar, InputLabel, MenuItem, Select, Stack, TextField, FormControl, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 function User() {
   const [age, setAge] = useState('');
   const [name, setName] = useState('');
   const [selectedSex, setSelectedSex] = useState('');
+  const navigate = useNavigate();
 
   const handleAgeChange = (event) => {
     setAge(event.target.value);
@@ -16,6 +18,10 @@ function User() {
 
   const handleSelectSexChange = (event) => {
     setSelectedSex(event.target.value);
+  };
+
+  const handleSetClick = () => {
+    navigate('/medtime');
   };
 
   return (
@@ -70,7 +76,18 @@ function User() {
           </Select>
         </FormControl>
       </div>
-      <Button style={{ backgroundColor: '#00809D', color: 'white', borderRadius: '20px', fontSize: '15px', fontWeight: 'bold' }}>SET</Button>
+      <Button
+        style={{
+          backgroundColor: '#00809D',
+          color: 'white',
+          borderRadius: '20px',
+          fontSize: '15px',
+          fontWeight: 'bold'
+        }}
+        onClick={handleSetClick}
+      >
+        SET
+      </Button>
       <div style={{
         position: "fixed",
         left: 20,
@@ -92,7 +109,6 @@ function User() {
         INDIA
       </div>
     </div>
-    
   );
 }
 
