@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MenuItem, Select, FormControl, InputLabel, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 function Medtime() {
   // Separate state for each selection
@@ -9,6 +10,12 @@ function Medtime() {
   const [afternoonAfter, setAfternoonAfter] = useState('');
   const [nightBefore, setNightBefore] = useState('');
   const [nightAfter, setNightAfter] = useState('');
+
+  const navigate = useNavigate();
+
+  const handleSetClick = () => {
+    navigate('/medinfo');
+  };
 
   return (
     <div className="bg-[#f1faee] min-h-screen p-6 flex flex-col items-center">
@@ -150,10 +157,18 @@ function Medtime() {
         </FormControl>
       </div>
       <div className='py-10'>
-      <Button 
-      style={{ backgroundColor: '#00809D', color: 'white', borderRadius: '20px', fontSize: '15px', fontWeight: 'bold' }}>
-        SET
-      </Button>
+        <Button
+          style={{
+            backgroundColor: '#00809D',
+            color: 'white',
+            borderRadius: '20px',
+            fontSize: '15px',
+            fontWeight: 'bold'
+          }}
+          onClick={handleSetClick}
+        >
+          SET
+        </Button>
       </div>
       <div style={{
         position: "fixed",

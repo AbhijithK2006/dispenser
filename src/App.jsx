@@ -3,6 +3,7 @@ import Home from './Home/Home';
 import TimeDate from './Home/TimeDate';
 import User from './Home/User';
 import Medtime from './Medicine.jsx/Medtime';
+import Medinfo from './Medicine.jsx/Medinfo';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/timedate" element={<TimeDate />} />
         <Route path="/user" element={<User />} />
         <Route path="/medtime" element={<Medtime />} />
+        <Route path="/medinfo" element={<Medinfo />} />
       </Routes>
     </Router>
   );
