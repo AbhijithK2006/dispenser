@@ -1,5 +1,8 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
+
 
 // --- ICONS (Using SVG for better performance and customization) ---
 const MenuIcon = () => (
@@ -43,13 +46,10 @@ const SettingsIcon = () => (
 // --- CONTEXT PROVIDERS ---
 
 // 1. Time Context
-// This will hold the master date and time for the entire application.
 const TimeContext = createContext();
-
 const TimeProvider = ({ children }) => {
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [selectedTime, setSelectedTime] = useState(dayjs());
-
   return (
     <TimeContext.Provider value={{ selectedDate, setSelectedDate, selectedTime, setSelectedTime }}>
       {children}
@@ -58,17 +58,11 @@ const TimeProvider = ({ children }) => {
 };
 
 // 2. User Context
-// This will store all the user profile information.
 const UserContext = createContext();
-
 const UserProvider = ({ children }) => {
   const [profileData, setProfileData] = useState({
-    name: '',
-    age: '',
-    sex: '',
-    profilePhoto: null, // This will be a Base64 string for the image
+    name: '', age: '', sex: '', profilePhoto: null,
   });
-
   return (
     <UserContext.Provider value={{ profileData, setProfileData }}>
       {children}
@@ -76,9 +70,26 @@ const UserProvider = ({ children }) => {
   );
 };
 
-// --- HELPER COMPONENTS ---
+// 3. Medication Context
+const MedicationContext = createContext();
+const MedicationProvider = ({ children }) => {
+    const [medicationTimings, setMedicationTimings] = useState({
+        morningBefore: { active: 'No', time: '08:00' },
+        morningAfter: { active: 'No', time: '09:00' },
+        afternoonBefore: { active: 'No', time: '12:00' },
+        afternoonAfter: { active: 'No', time: '13:00' },
+        nightBefore: { active: 'No', time: '19:00' },
+        nightAfter: { active: 'No', time: '20:00' },
+    });
+    return (
+        <MedicationContext.Provider value={{ medicationTimings, setMedicationTimings }}>
+            {children}
+        </MedicationContext.Provider>
+    );
+};
 
-// A nice wrapper for our pages to give a consistent feel.
+
+// --- HELPER COMPONENTS ---
 const PageWrapper = ({ children, className }) => (
   <div className={`min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-6 lg:p-8 ${className}`}>
      <div className="absolute top-4 left-4 text-xs text-slate-400 font-bold">KERALA</div>
@@ -89,7 +100,6 @@ const PageWrapper = ({ children, className }) => (
   </div>
 );
 
-// A reusable, styled button.
 const StyledButton = ({ onClick, children, className }) => (
     <button
         onClick={onClick}
@@ -158,19 +168,12 @@ function TimeDate({ setPage }) {
   );
 }
 
-// A custom hook for the running clock
 const useRunningClock = (initialTime) => {
     const [time, setTime] = useState(initialTime);
-
     useEffect(() => {
-        const timerId = setInterval(() => {
-            setTime(prevTime => prevTime.add(1, 'second'));
-        }, 1000);
-
-        // Cleanup the interval on component unmount
+        const timerId = setInterval(() => setTime(prevTime => prevTime.add(1, 'second')), 1000);
         return () => clearInterval(timerId);
-    }, []); // Run only once
-
+    }, []);
     return time;
 };
 
@@ -219,24 +222,10 @@ function User({ setPage }) {
                 </div>
 
                 <div className="w-full space-y-4">
-                    <input
-                        type="text" name="name" placeholder="Name"
-                        value={profileData.name} onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                    />
-                    <input
-                        type="number" name="age" placeholder="Age"
-                        value={profileData.age} onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                    />
-                    <select
-                        name="sex" value={profileData.sex} onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                    >
-                        <option value="">Select Sex</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                    <input type="text" name="name" placeholder="Name" value={profileData.name} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"/>
+                    <input type="number" name="age" placeholder="Age" value={profileData.age} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"/>
+                    <select name="sex" value={profileData.sex} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Select Sex</option> <option value="Male">Male</option> <option value="Female">Female</option> <option value="Other">Other</option>
                     </select>
                 </div>
                 
@@ -250,51 +239,58 @@ function User({ setPage }) {
 
 function Medtime({ setPage }) {
     const { profileData } = useContext(UserContext);
-    
-    const [timings, setTimings] = useState({
-        morningBefore: 'No', morningAfter: 'No',
-        afternoonBefore: 'No', afternoonAfter: 'No',
-        nightBefore: 'No', nightAfter: 'No',
-    });
+    const { medicationTimings, setMedicationTimings } = useContext(MedicationContext);
 
-    const handleTimingChange = (e) => {
-        const { name, value } = e.target;
-        setTimings(prev => ({ ...prev, [name]: value }));
+    const handleTimingChange = (period, condition, field, value) => {
+        const key = `${period}${condition}`;
+        setMedicationTimings(prev => ({
+            ...prev,
+            [key]: { ...prev[key], [field]: value }
+        }));
     };
 
     return (
         <PageWrapper>
              <div className="flex items-center mb-8">
-                 <img
-                    src={profileData.profilePhoto || 'https://placehold.co/64x64/E0E7FF/4F46E5?text=User'}
-                    alt="Profile"
-                    className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-md"
-                />
+                 <img src={profileData.profilePhoto || 'https://placehold.co/64x64/E0E7FF/4F46E5?text=User'} alt="Profile" className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-md"/>
                 <h2 className="ml-4 text-2xl font-bold text-gray-700">{profileData.name || 'User'}</h2>
              </div>
 
             <div className="bg-white p-8 rounded-2xl shadow-xl">
                  <h1 className="text-4xl font-bold text-gray-800 text-center mb-8">Medicine Timings</h1>
                  
-                 <div className="space-y-10">
-                    {['Morning', 'Afternoon', 'Night'].map((period) => (
+                 <div className="space-y-8">
+                    {['morning', 'afternoon', 'night'].map((period) => (
                         <div key={period} className="p-6 border border-gray-200 rounded-xl bg-gray-50">
                             <h3 className="text-2xl font-semibold text-cyan-600 mb-4">{period.toUpperCase()}</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                               <div className="flex items-center justify-between">
-                                    <label className="font-semibold text-gray-700">Before Food</label>
-                                    <select name={`${period.toLowerCase()}Before`} value={timings[`${period.toLowerCase()}Before`]} onChange={handleTimingChange} className="p-2 border border-gray-300 rounded-lg">
-                                        <option value="No">No</option>
-                                        <option value="Yes">Yes</option>
-                                    </select>
-                               </div>
-                               <div className="flex items-center justify-between">
-                                    <label className="font-semibold text-gray-700">After Food</label>
-                                    <select name={`${period.toLowerCase()}After`} value={timings[`${period.toLowerCase()}After`]} onChange={handleTimingChange} className="p-2 border border-gray-300 rounded-lg">
-                                        <option value="No">No</option>
-                                        <option value="Yes">Yes</option>
-                                    </select>
-                               </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                                {['Before', 'After'].map((condition) => {
+                                    const key = `${period}${condition}`;
+                                    const timingData = medicationTimings[key];
+                                    return (
+                                        <div key={key} className="space-y-3">
+                                            <label className="font-semibold text-gray-700">{condition} Food</label>
+                                            <div className="flex items-center gap-4">
+                                                <select
+                                                    value={timingData.active}
+                                                    onChange={e => handleTimingChange(period, condition, 'active', e.target.value)}
+                                                    className="p-2 border border-gray-300 rounded-lg w-24"
+                                                >
+                                                    <option value="No">No</option>
+                                                    <option value="Yes">Yes</option>
+                                                </select>
+                                                {timingData.active === 'Yes' && (
+                                                    <input
+                                                        type="time"
+                                                        value={timingData.time}
+                                                        onChange={e => handleTimingChange(period, condition, 'time', e.target.value)}
+                                                        className="p-2 border border-gray-300 rounded-lg flex-grow"
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}
@@ -310,12 +306,61 @@ function Medtime({ setPage }) {
     );
 }
 
+
 function Medinfo({ setPage }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const { selectedDate, selectedTime } = useContext(TimeContext);
     const { profileData } = useContext(UserContext);
+    const { medicationTimings } = useContext(MedicationContext);
     const runningTime = useRunningClock(selectedTime);
+    const [nextMedication, setNextMedication] = useState(null);
 
+    useEffect(() => {
+        // Function to find the next medication
+        const findNextMedication = () => {
+            const now = runningTime;
+
+            // 1. Get all active medication slots
+            const activeSlots = Object.entries(medicationTimings)
+                .filter(([, details]) => details.active === 'Yes')
+                .map(([key, details]) => {
+                    const period = key.includes('morning') ? 'Morning' : key.includes('afternoon') ? 'Afternoon' : 'Night';
+                    const condition = key.includes('Before') ? 'Before Food' : 'After Food';
+                    const time = dayjs(`${selectedDate.format('YYYY-MM-DD')}T${details.time}`);
+                    return { time, period, condition, key };
+                });
+
+            if (activeSlots.length === 0) {
+                setNextMedication(null); // No meds scheduled
+                return;
+            }
+
+            // 2. Find slots after the current time today
+            const upcomingToday = activeSlots.filter(slot => slot.time.isAfter(now));
+
+            // 3. Determine the next medication
+            if (upcomingToday.length > 0) {
+                // If there are upcoming meds today, find the earliest one
+                upcomingToday.sort((a, b) => a.time - b.time);
+                setNextMedication(upcomingToday[0]);
+            } else {
+                // If no more meds today, find the earliest one for tomorrow
+                activeSlots.sort((a, b) => a.time - b.time);
+                const nextDaySlot = activeSlots[0];
+                setNextMedication({
+                    ...nextDaySlot,
+                    time: nextDaySlot.time.add(1, 'day'), // Set it for tomorrow
+                });
+            }
+        };
+
+        findNextMedication();
+        // Recalculate every second along with the running clock
+        const intervalId = setInterval(findNextMedication, 1000); 
+
+        return () => clearInterval(intervalId); // Cleanup
+    }, [runningTime, medicationTimings, selectedDate]);
+    
     const Sidebar = () => (
          <aside className={`bg-gray-800 text-white transform top-0 left-0 h-screen fixed transition-all duration-300 ease-in-out z-30 ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'}`}>
              <div className="p-4">
@@ -324,18 +369,10 @@ function Medinfo({ setPage }) {
                      <span className="ml-3 font-semibold">{profileData.name || "User"}</span>
                  </div>
                  <nav className="space-y-2">
-                     <button onClick={() => setPage('user')} className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group">
-                         <UserIcon /> Profile
-                     </button>
-                      <button onClick={() => setPage('timedate')} className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group">
-                         <AlarmIcon /> Set Alarm
-                     </button>
-                      <button className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group">
-                         <BookIcon /> User Manual
-                     </button>
-                      <button className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group">
-                         <SettingsIcon /> Settings
-                     </button>
+                     <button onClick={() => setPage('user')} className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group"><UserIcon /> Profile</button>
+                     <button onClick={() => setPage('timedate')} className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group"><AlarmIcon /> Set Alarm</button>
+                     <button className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group"><BookIcon /> User Manual</button>
+                     <button className="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group"><SettingsIcon /> Settings</button>
                  </nav>
              </div>
         </aside>
@@ -346,11 +383,8 @@ function Medinfo({ setPage }) {
             <Sidebar />
             <main className={`flex-grow transition-all duration-300 ease-in-out ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
                 <div className="min-h-screen p-6">
-                    {/* Header */}
                     <header className="flex justify-between items-center mb-8">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md hover:bg-gray-200 z-40 relative">
-                             {isSidebarOpen ? <CloseIcon /> : <MenuIcon />}
-                        </button>
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md hover:bg-gray-200 z-40 relative">{isSidebarOpen ? <CloseIcon /> : <MenuIcon />}</button>
                         <h1 className="text-4xl font-bold text-gray-800">Dispenser</h1>
                          <div className="flex items-center bg-white p-3 rounded-xl shadow-md space-x-4">
                             <span className="font-bold text-cyan-600">{selectedDate.format('ddd')}</span>
@@ -359,21 +393,25 @@ function Medinfo({ setPage }) {
                         </div>
                     </header>
                     
-                    {/* Main Content */}
                     <div className="text-center">
                         <h2 className="text-2xl text-gray-600 mb-4">Current Time</h2>
-                        <div className="text-7xl font-mono font-bold text-cyan-600 mb-12 bg-white inline-block px-8 py-4 rounded-2xl shadow-lg">
-                           {runningTime.format('HH:mm:ss')}
-                        </div>
+                        <div className="text-7xl font-mono font-bold text-cyan-600 mb-12 bg-white inline-block px-8 py-4 rounded-2xl shadow-lg">{runningTime.format('HH:mm:ss')}</div>
 
                         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm mx-auto">
-                            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-                                Next Medicine At
-                            </h3>
-                            <div className="text-5xl font-bold text-red-500 bg-red-100 p-4 rounded-lg">
-                                08:00 AM
-                            </div>
-                             <p className="mt-2 text-gray-500">Morning - After Food</p>
+                            <h3 className="text-2xl font-bold text-gray-700 mb-4">Next Medicine At</h3>
+                            {nextMedication ? (
+                                <>
+                                    <div className="text-5xl font-bold text-red-500 bg-red-100 p-4 rounded-lg">
+                                        {nextMedication.time.format('hh:mm A')}
+                                    </div>
+                                    <p className="mt-2 text-gray-500 font-semibold">{`${nextMedication.period} - ${nextMedication.condition}`}</p>
+                                    <p className="mt-1 text-xs text-gray-400">on {nextMedication.time.format('MMM DD, YYYY')}</p>
+                                </>
+                            ) : (
+                                <div className="text-xl font-bold text-gray-500 bg-gray-100 p-4 rounded-lg">
+                                    No medicine scheduled
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -384,42 +422,31 @@ function Medinfo({ setPage }) {
 
 
 // --- Main App Component ---
-// This component will manage which page is currently visible.
 export default function App() {
   const [page, setPage] = useState('home'); // home, timedate, user, medtime, medinfo
 
   const renderPage = () => {
     switch (page) {
-      case 'timedate':
-        return <TimeDate setPage={setPage} />;
-      case 'user':
-        return <User setPage={setPage} />;
-      case 'medtime':
-        return <Medtime setPage={setPage} />;
-      case 'medinfo':
-        return <Medinfo setPage={setPage} />;
-      case 'home':
-      default:
-        return <Home setPage={setPage} />;
+      case 'timedate': return <TimeDate setPage={setPage} />;
+      case 'user': return <User setPage={setPage} />;
+      case 'medtime': return <Medtime setPage={setPage} />;
+      case 'medinfo': return <Medinfo setPage={setPage} />;
+      case 'home': default: return <Home setPage={setPage} />;
     }
   };
 
   return (
     <UserProvider>
       <TimeProvider>
-          <style>{`
-            @keyframes fade-in-down {
-                0% { opacity: 0; transform: translateY(-20px); }
-                100% { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes fade-in-up {
-                0% { opacity: 0; transform: translateY(20px); }
-                100% { opacity: 1; transform: translateY(0); }
-            }
-            .animate-fade-in-down { animation: fade-in-down 0.8s ease-out forwards; }
-            .animate-fade-in-up { animation: fade-in-up 0.8s ease-out 0.3s forwards; }
-          `}</style>
-          {renderPage()}
+        <MedicationProvider>
+            <style>{`
+                @keyframes fade-in-down { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+                @keyframes fade-in-up { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+                .animate-fade-in-down { animation: fade-in-down 0.8s ease-out forwards; }
+                .animate-fade-in-up { animation: fade-in-up 0.8s ease-out 0.3s forwards; }
+            `}</style>
+            {renderPage()}
+        </MedicationProvider>
       </TimeProvider>
     </UserProvider>
   );
